@@ -1,0 +1,65 @@
+/* Tailwind base, components, utilities */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Global body styles (fonts already set in HTMLs, but can centralize here) */
+body {
+    font-family: 'Inter', sans-serif; /* Default for player/QM */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    transition: background-color 0.3s ease, color 0.3s ease; /* Smooth theme transitions if ever implemented */
+}
+
+/* Custom component styles (examples, can be expanded) */
+.btn {
+    @apply font-semibold py-2 px-4 rounded-lg shadow-md transition-all duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-opacity-75;
+}
+.btn-primary {
+    @apply btn bg-purple-600 hover:bg-purple-700 text-white focus:ring-purple-500;
+}
+.btn-secondary {
+    @apply btn bg-sky-500 hover:bg-sky-600 text-white focus:ring-sky-500;
+}
+.btn-danger {
+    @apply btn bg-red-600 hover:bg-red-700 text-white focus:ring-red-500;
+}
+.btn-warning {
+    @apply btn bg-orange-500 hover:bg-orange-600 text-white focus:ring-orange-500;
+}
+.btn-success {
+    @apply btn bg-green-500 hover:bg-green-600 text-white focus:ring-green-500;
+}
+
+.input-field {
+    @apply w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg focus:ring-2 focus:border-transparent transition-colors placeholder-slate-400 text-slate-100;
+    /* Custom focus styles if Tailwind's default focus:ring is not enough */
+    /* Example: focus:ring-purple-500 focus:border-purple-500 */
+}
+
+.card {
+    @apply bg-slate-800/70 backdrop-blur-md shadow-xl rounded-xl p-6 md:p-8;
+}
+
+/* Specific overrides or complex styles */
+#display-app-container h1,
+#display-app-container p,
+#display-app-container div {
+    font-family: 'Montserrat', sans-serif; /* Ensure display uses Montserrat */
+}
+
+/* Animation utilities */
+.animate-pop-in {
+    animation: popIn 0.3s ease-out forwards;
+}
+@keyframes popIn {
+    0% { opacity: 0; transform: scale(0.9); }
+    100% { opacity: 1; transform: scale(1); }
+}
+.animate-slide-in-bottom {
+    animation: slideInBottom 0.4s ease-out forwards;
+}
+@keyframes slideInBottom {
+    0% { opacity: 0; transform: translateY(20px); }
+    100% { opacity: 1; transform: translateY(0); }
+}

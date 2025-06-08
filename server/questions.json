@@ -1,0 +1,29 @@
+{
+  "title": "Sample PRD Quiz",
+  "questions": [
+    {
+      "id": "q1",
+      "externalId": "Slide 1",
+      "text": "What is 2 + 2?",
+      "pounceCorrectAnswer": "4",
+      "bounceCorrectAnswer": "4",
+      "media": null
+    },
+    {
+      "id": "q2",
+      "externalId": "Slide 2",
+      "text": "What is the capital of France?",
+      "pounceCorrectAnswer": "Paris",
+      "bounceCorrectAnswer": "Paris",
+      "media": null
+    },
+    {
+      "id": "q3",
+      "externalId": "Slide 3",
+      "text": "What is H2O?",
+      "pounceCorrectAnswer": "Water",
+      "bounceCorrectAnswer": "Water",
+      "media": null
+    }
+  ]
+}
