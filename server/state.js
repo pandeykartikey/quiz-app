@@ -217,17 +217,41 @@ const stateManager = {
   },
 
   prepareBounceOrder: () => {
-    quizState.bounceOrder = Object.values(quizState.players)
+    const connectedEligiblePlayers = Object.values(quizState.players)
       .filter(p => p.connected && p.isEligibleForBounce && !p.isQuizmaster)
-      .map(p => p.socketId); // Simple order for now
+      .sort((a, b) => a.id.localeCompare(b.id)); // Sort by ID for consistent ordering
+
+    if (connectedEligiblePlayers.length === 0) {
+      quizState.bounceOrder = [];
+      quizState.bounceTurnPlayerId = null;
+      console.log('No players eligible for bounce.');
+      return;
+    }
+
+    // Determine starting index based on currentQuestionIndex
+    // currentQuestionIndex is 0-based.
+    const questionNumForOrder = quizState.currentQuestionIndex; // Can be -1 if no question active
+    let startIndex = 0;
+    if (questionNumForOrder >=0 && connectedEligiblePlayers.length > 0) {
+        startIndex = questionNumForOrder % connectedEligiblePlayers.length;
+    }
+
+    // Create the rotated bounce order
+    const rotatedOrder = [
+      ...connectedEligiblePlayers.slice(startIndex),
+      ...connectedEligiblePlayers.slice(0, startIndex)
+    ];
+
+    quizState.bounceOrder = rotatedOrder.map(p => p.socketId);
 
     if (quizState.bounceOrder.length > 0) {
       quizState.bounceTurnPlayerId = quizState.bounceOrder[0];
-      console.log('Bounce order prepared:', quizState.bounceOrder.map(id => quizState.players[id].name));
+      console.log('Bounce order prepared (rotated):', quizState.bounceOrder.map(id => quizState.players[id].name));
       console.log('Bounce turn starts with:', quizState.players[quizState.bounceTurnPlayerId].name);
     } else {
+      // This case should be covered by the initial check, but as a safeguard:
       quizState.bounceTurnPlayerId = null;
-      console.log('No players eligible for bounce.');
+      console.log('No players eligible for bounce after rotation attempt.');
     }
   },
 
