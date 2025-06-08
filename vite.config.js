@@ -3,12 +3,15 @@ import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   plugins: [tailwindcss()],
+  publicDir: 'client', // Serve assets from client directory
   build: {
-    outDir: 'public',
-    emptyOutDir: false, // Don't empty the directory since we have static assets
+    outDir: 'dist/client', // Output build to dist/client
+    emptyOutDir: true, // It's generally better to clean the outDir
     rollupOptions: {
       input: {
-        main: 'src/main.js'
+        main: 'client/index.html',
+        host: 'client/host.html',
+        display: 'client/display.html',
       }
     }
   },

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Display</title>
+    <link rel="stylesheet" href="style.css"> <!-- Tailwind CSS -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: #1a1a2e; /* Dark blueish background */
+            color: #e0e0e0; /* Light grey text */
+            overflow: hidden; /* Prevent scrollbars */
+        }
+        .hidden { display: none; }
+        .display-card {
+            @apply bg-slate-800/60 backdrop-blur-lg shadow-2xl rounded-xl p-8 md:p-12 text-center;
+            min-width: 70vw;
+            max-width: 90vw;
+        }
+        .highlight-text {
+            @apply text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-500 to-red-500;
+        }
+        .leaderboard-item {
+            @apply flex justify-between items-center p-3 bg-slate-700/50 rounded-md text-2xl;
+        }
+         .animate-fade-in-slow { animation: fadeIn 1s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+    <div id="display-app-container" class="w-full">
+
+        <!-- Connection Status (Subtle) -->
+        <div id="display-connection-status" class="fixed top-2 right-2 text-xs px-2 py-1 rounded-full"></div>
+
+        <!-- Lobby / Waiting for Players View -->
+        <section id="display-lobby-view" class="display-card animate-fade-in-slow hidden">
+            <h1 id="display-lobby-title" class="text-5xl md:text-7xl font-black mb-6 highlight-text">Welcome to the Quiz!</h1>
+            <p class="text-3xl md:text-4xl text-slate-300 mb-8">Join using the Access Code:</p>
+            <p id="display-access-code" class="text-7xl md:text-9xl font-extrabold text-yellow-300 tracking-wider mb-10 tabular-nums"></p>
+            <div id="display-qr-code-area" class="flex flex-col items-center justify-center">
+                <img id="display-qr-code-img" src="" alt="QR Code to Join" class="w-48 h-48 md:w-64 md:h-64 bg-white p-2 rounded-lg shadow-lg hidden">
+                <p id="display-join-url" class="text-lg text-slate-400 mt-4 break-all"></p>
+            </div>
+            <p class="mt-12 text-2xl text-slate-400">Waiting for the Quizmaster to start...</p>
+        </section>
+
+        <!-- Question Active View -->
+        <section id="display-question-view" class="display-card animate-fade-in-slow hidden">
+            <p class="text-3xl md:text-5xl text-slate-300 mb-4">Question <span id="display-question-number" class="font-bold text-sky-400"></span></p>
+            <p id="display-question-external-id" class="text-xl md:text-2xl text-slate-400 mb-8">(<span class="font-mono"></span>)</p>
+
+            <div id="display-question-text" class="text-4xl md:text-6xl font-bold text-center min-h-[150px] flex items-center justify-center mb-8">
+                <!-- Question text will be brief, main content on slides -->
+            </div>
+
+            <div id="display-phase-info" class="text-5xl md:text-7xl font-bold">
+                <!-- Phase specific message here -->
+            </div>
+            <div id="display-pounce-timer" class="text-4xl md:text-6xl text-orange-400 font-bold mt-4"></div>
+            <div id="display-bounce-turn-info" class="text-3xl md:text-5xl text-cyan-400 font-semibold mt-6"></div>
+        </section>
+
+        <!-- Leaderboard / Results View -->
+        <section id="display-leaderboard-view" class="display-card animate-fade-in-slow hidden">
+            <h2 id="display-leaderboard-title" class="text-5xl md:text-7xl font-black mb-8 highlight-text">Leaderboard</h2>
+            <div id="display-leaderboard-list" class="space-y-3 md:space-y-4 max-h-[60vh] overflow-y-auto px-4">
+                <!-- Leaderboard items will be populated here -->
+            </div>
+             <p id="display-leaderboard-waiting-msg" class="mt-8 text-2xl text-slate-400">Waiting for next round...</p>
+        </section>
+
+        <!-- Final Results View -->
+        <section id="display-final-results-view" class="display-card animate-fade-in-slow hidden">
+            <h1 class="text-6xl md:text-8xl font-black mb-8 highlight-text">Quiz Finished!</h1>
+            <h2 class="text-4xl md:text-5xl text-yellow-300 mb-10">Final Standings:</h2>
+            <div id="display-final-leaderboard-list" class="space-y-3 md:space-y-4 max-h-[50vh] overflow-y-auto px-4">
+                <!-- Final leaderboard items -->
+            </div>
+        </section>
+
+    </div>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="display.js"></script>
+</body>
+</html>
