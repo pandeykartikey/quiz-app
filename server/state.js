@@ -54,7 +54,7 @@ const stateManager = {
 
   loadQuestions: (questionsData) => {
     quizState.questions = questionsData;
-    console.log(`\${questionsData.length} questions loaded into state.`);
+    console.log(`${questionsData.length} questions loaded into state.`);
   },
 
   setQuizTitle: (title) => { quizState.quizTitle = title; },
@@ -63,11 +63,11 @@ const stateManager = {
     if (isQm) {
       const existingQm = Object.values(quizState.players).find(p => p.isQuizmaster && p.socketId !== newSocketId);
       if (existingQm) {
-        console.log(`Replacing existing quizmaster \${existingQm.name} (\${existingQm.socketId}) with new QM on \${newSocketId}\`);
+        console.log(`Replacing existing quizmaster ${existingQm.name} (${existingQm.socketId}) with new QM on ${newSocketId}`);
         delete quizState.players[existingQm.socketId];
       }
       quizState.players[newSocketId] = { ...initialPlayerState, id: newSocketId, name: 'Quizmaster', socketId: newSocketId, connected: true, isQuizmaster: true };
-      console.log(`Quizmaster (\${newSocketId}) added/updated.\`);
+      console.log(`Quizmaster (${newSocketId}) added/updated.`);
       return quizState.players[newSocketId];
     }
 
@@ -76,12 +76,12 @@ const stateManager = {
 
     if (existingPlayerByName) {
       if (existingPlayerByName.connected && existingPlayerByName.socketId !== newSocketId) {
-        console.warn(`Player name "\${name}" is already in use by an active player (\${existingPlayerByName.socketId}).\`);
+        console.warn(`Player name "${name}" is already in use by an active player (${existingPlayerByName.socketId}).`);
         return null; // Name taken by an active player
       }
       if (!existingPlayerByName.connected) {
         // This is a rejoin attempt for a disconnected player
-        console.log(`Player "\${name}" (\${existingPlayerByName.socketId}) is rejoining with new socket ID \${newSocketId}.\`);
+        console.log(`Player "${name}" (${existingPlayerByName.socketId}) is rejoining with new socket ID ${newSocketId}.`);
         const oldSocketId = existingPlayerByName.socketId;
         const rejoiningPlayerData = { ...existingPlayerByName }; // Copy their data
 
@@ -91,28 +91,28 @@ const stateManager = {
 
         delete quizState.players[oldSocketId]; // Remove old entry
         quizState.players[newSocketId] = rejoiningPlayerData; // Add new entry with updated socket ID
-        console.log(`Player "\${name}" reconnected successfully.\`);
+        console.log(`Player "${name}" reconnected successfully.`);
         return quizState.players[newSocketId];
       }
       // If existingPlayerByName.connected is true AND existingPlayerByName.socketId === newSocketId
       // This means the same socket is trying to add player again, should not happen if client logic is correct.
       // Or, it could be a refresh on client side that triggers join again. If so, just return the player.
       if (existingPlayerByName.connected && existingPlayerByName.socketId === newSocketId) {
-        console.log(`Player "\${name}" (\${newSocketId}) trying to join again with same socket. Returning existing player.\`)
+        console.log(`Player "${name}" (${newSocketId}) trying to join again with same socket. Returning existing player.`)
         return existingPlayerByName;
       }
     }
 
     // No existing player with this name, or it was a stale entry that got cleared.
     // Create a new player entry.
-    console.log(`Adding new player "\${name}" with socket ID \${newSocketId}.\`);
+    console.log(`Adding new player "${name}" with socket ID ${newSocketId}.`);
     quizState.players[newSocketId] = { ...initialPlayerState, id: newSocketId, name, socketId: newSocketId, connected: true, isQuizmaster: false };
     return quizState.players[newSocketId];
   },
 
   removePlayer: (socketId) => { /* ... (keep existing logic) ... */
     if (quizState.players[socketId]) {
-      console.log(`Player \${quizState.players[socketId].name} (ID: \${socketId}) removed.`);
+      console.log(`Player ${quizState.players[socketId].name} (ID: ${socketId}) removed.`);
       delete quizState.players[socketId];
       if (quizState.bounceTurnPlayerId === socketId) quizState.bounceTurnPlayerId = null;
       quizState.bounceOrder = quizState.bounceOrder.filter(id => id !== socketId);
@@ -127,7 +127,7 @@ const stateManager = {
   },
 
   setQuizPhase: (phase) => {
-    console.log(`Quiz phase changing from \${quizState.quizPhase} to: \${phase}`);
+    console.log(`Quiz phase changing from ${quizState.quizPhase} to: ${phase}`);
     quizState.quizPhase = phase;
 
     // Reset states based on new phase
@@ -171,10 +171,10 @@ const stateManager = {
   // Called by QM action: nextQuestion / previousQuestion
   setCurrentQuestion: (questionIndex, externalId) => {
     quizState.currentQuestionIndex = questionIndex;
-    quizState.currentQuestionExternalId = externalId || `Q\${questionIndex + 1}`;
+    quizState.currentQuestionExternalId = externalId || `Q${questionIndex + 1}`;
     // This phase indicates a question is active, but pounce not yet triggered by QM
     stateManager.setQuizPhase('question_pending_pounce_trigger');
-    console.log(`Current question set to \${questionIndex + 1}. Phase: question_pending_pounce_trigger`);
+    console.log(`Current question set to ${questionIndex + 1}. Phase: question_pending_pounce_trigger`);
     return quizState.questions[questionIndex];
   },
 
@@ -183,7 +183,7 @@ const stateManager = {
     if (quizState.currentQuestionIndex === -1) return false; // No active question
     stateManager.setQuizPhase('pounce_opt_in');
     quizState.pounceOptInEndTime = Date.now() + 10000; // 10 seconds to opt-in
-    console.log(`Pounce opt-in phase started. Ends at: \${new Date(quizState.pounceOptInEndTime).toLocaleTimeString()}`);
+    console.log(`Pounce opt-in phase started. Ends at: ${new Date(quizState.pounceOptInEndTime).toLocaleTimeString()}`);
     return true;
   },
 
@@ -198,7 +198,7 @@ const stateManager = {
     }
     player.hasOptedInPounce = true;
     player.pouncePersonalAnswerEndTime = Date.now() + 20000; // Player gets 20s from their opt-in time
-    console.log(`Player \${player.name} opted-in for pounce. Answer deadline: \${new Date(player.pouncePersonalAnswerEndTime).toLocaleTimeString()}`);
+    console.log(`Player ${player.name} opted-in for pounce. Answer deadline: ${new Date(player.pouncePersonalAnswerEndTime).toLocaleTimeString()}`);
     return { success: true, personalAnswerEndTime: player.pouncePersonalAnswerEndTime };
   },
 
@@ -220,7 +220,7 @@ const stateManager = {
     if (isCorrect) player.score += 20;
     else player.score -= 10;
 
-    console.log(`Player \${player.name} pounced (\${isCorrect ? 'Correct' : 'Incorrect'}). Score: \${player.score}`);
+    console.log(`Player ${player.name} pounced (${isCorrect ? 'Correct' : 'Incorrect'}). Score: ${player.score}`);
     return { success: true, score: player.score };
   },
 
@@ -244,7 +244,7 @@ const stateManager = {
     const activePouncers = Object.values(quizState.players).filter(p => p.hasOptedInPounce && !p.pouncedThisQuestion && currentTime < p.pouncePersonalAnswerEndTime);
 
     if (activePouncers.length > 0) {
-      // console.log(`\${activePouncers.length} players still have time to submit their pounce answers.`);
+      // console.log(`${activePouncers.length} players still have time to submit their pounce answers.`);
       // If opt-in is over, but players are answering, we can call this 'pounce_answering_window_active'
       if(quizState.quizPhase !== 'pounce_answering_window_active') {
            // This state transition is mostly for server logic; client might not need such fine-grained phase if pounce UI just depends on personal timers
@@ -344,7 +344,7 @@ const stateManager = {
     const player = Object.values(quizState.players).find(p => p.id === playerId && !p.isQuizmaster);
     if (player) {
         player.score += pointsDelta;
-        console.log(`Adjusted score for \${player.name} by \${pointsDelta}. New score: \${player.score}`);
+        console.log(`Adjusted score for ${player.name} by ${pointsDelta}. New score: ${player.score}`);
         return { success: true, newScore: player.score };
     }
     return { success: false, message: "Player not found or is Quizmaster." };

@@ -39,13 +39,13 @@ app.get('/api/quiz-info', (req, res) => { /* ... */
   res.json({ title: cs.quizTitle, accessCode: cs.accessCode, quizPhase: cs.quizPhase, currentQuestion: stateManager.getCurrentQuestion() });
 });
 app.get('/api/qr-code', async (req, res) => { /* ... */
-  try { const ip = getLocalIP(), code = stateManager.getState().accessCode, url = `http://\${ip}:\${PORT}/?code=\${code}\`;
+  try { const ip = getLocalIP(), code = stateManager.getState().accessCode, url = `http://${ip}:${PORT}/?code=${code}`;
   res.json({ qrCode: await QRCode.toDataURL(url), url }); } catch (e) { res.status(500).json({e:'QR gen failed'});}
 });
 
 
 io.on('connection', (socket) => {
-  console.log(`Client connected: \${socket.id}`);
+  console.log(`Client connected: ${socket.id}`);
 
   const broadcastFullStateToAll = () => {
     const currentState = stateManager.getState();
@@ -79,7 +79,7 @@ io.on('connection', (socket) => {
     );
 
     if (existingDisconnectedPlayer) {
-        console.log(`Player \${name} is rejoining. Old socket ID: \${existingDisconnectedPlayer.id}, New: \${socket.id}\`);
+        console.log(`Player ${name} is rejoining. Old socket ID: ${existingDisconnectedPlayer.id}, New: ${socket.id}`);
         // Update existing player's socketId and mark as connected
         // This requires stateManager to handle socket ID updates carefully or re-mapping.
         // Simplest: remove old, add new with old data. More robust: updateSocketId(oldId, newId) in stateManager.
@@ -281,7 +281,7 @@ io.on('connection', (socket) => {
         stateManager.setQuizTitle(qData.title || 'Quiz Title Reset');
     } catch (e) { console.error("Err reloading questions on reset:", e); }
 
-    console.log(`Quiz reset by QM. Old Code: \${oldAccessCode}, New Code: \${stateManager.getState().accessCode}`);
+    console.log(`Quiz reset by QM. Old Code: ${oldAccessCode}, New Code: ${stateManager.getState().accessCode}`);
     io.to('quiz_room').emit('quizForceReset', { accessCode: stateManager.getState().accessCode });
     // No need to call broadcast here, quizForceReset tells clients to re-evaluate or go to landing.
   });
@@ -316,10 +316,10 @@ server.listen(PORT, '0.0.0.0', () => { /* ... (keep existing server start log) .
   const ip = getLocalIP();
   console.log('=================================');
   console.log('🎯 Quiz Server (PRD v3 - Pounce Flow) is running!');
-  console.log(`📱 Local access: http://localhost:\${PORT}`);
-  console.log(`🌐 Network access: http://\${ip}:\${PORT}`);
-  console.log(`🔑 QM Code: \${QUIZMASTER_CODE}`);
-  console.log(`🔑 Access code: \${stateManager.getState().accessCode}\`);
+  console.log(`📱 Local access: http://localhost:${PORT}`);
+  console.log(`🌐 Network access: http://${ip}:${PORT}`);
+  console.log(`🔑 QM Code: ${QUIZMASTER_CODE}`);
+  console.log(`🔑 Access code: ${stateManager.getState().accessCode}`);
   console.log('=================================');
 });
 

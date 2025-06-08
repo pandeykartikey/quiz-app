@@ -45,8 +45,8 @@ class QuizDisplayClient {
         });
 
         this.socket.on('connect', () => this.updateConnectionStatus('Connected', 'success'));
-        this.socket.on('disconnect', (reason) => this.updateConnectionStatus(`Disconnected: \${reason}`, 'error'));
-        this.socket.on('connect_error', (err) => this.updateConnectionStatus(`Connection Error: \${err.message}`, 'error'));
+        this.socket.on('disconnect', (reason) => this.updateConnectionStatus(`Disconnected: ${reason}`, 'error'));
+        this.socket.on('connect_error', (err) => this.updateConnectionStatus(`Connection Error: ${err.message}`, 'error'));
 
         this.setupSocketEventListeners();
     }
@@ -76,7 +76,7 @@ class QuizDisplayClient {
             // If accessCodeFromReset is provided, the API might not have updated state yet.
             // The /api/qr-code endpoint itself should use the current server state access code.
             const response = await fetch('/api/qr-code');
-            if (!response.ok) throw new Error(`QR Code API Error: \${response.status}`);
+            if (!response.ok) throw new Error(`QR Code API Error: ${response.status}`);
             const data = await response.json();
             this.elements.qrCodeImage.src = data.qrCode;
             this.elements.qrCodeImage.classList.remove('hidden');
@@ -133,7 +133,7 @@ class QuizDisplayClient {
                     if (state.pounceEndTime && Date.now() < state.pounceEndTime) {
                         const updateTimer = () => {
                             const timeLeft = Math.max(0, Math.round((state.pounceEndTime - Date.now()) / 1000));
-                            this.elements.pounceTimerDisplay.textContent = `\${timeLeft}s`;
+                            this.elements.pounceTimerDisplay.textContent = `${timeLeft}s`;
                             if (timeLeft <= 0) {
                                 clearInterval(this.pounceTimerInterval);
                                 this.elements.pounceTimerDisplay.textContent = "Time's Up!";
@@ -152,7 +152,7 @@ class QuizDisplayClient {
                     this.elements.phaseInfoDisplay.className = "text-5xl md:text-7xl font-bold text-cyan-400";
                     const bouncer = state.currentBouncer; // Expect {id, name}
                     if (bouncer && bouncer.name) {
-                        this.elements.bounceTurnInfoDisplay.textContent = `\${bouncer.name}'s Turn`;
+                        this.elements.bounceTurnInfoDisplay.textContent = `${bouncer.name}'s Turn`;
                     } else {
                         this.elements.bounceTurnInfoDisplay.textContent = "Waiting for bouncer...";
                     }
@@ -173,7 +173,7 @@ class QuizDisplayClient {
 
             default:
                 this.elements.lobbyView.classList.remove('hidden'); // Fallback to lobby
-                console.warn(`Unknown quiz phase for display: \${state.quizPhase}`);
+                console.warn(`Unknown quiz phase for display: ${state.quizPhase}`);
         }
     }
 
@@ -195,8 +195,8 @@ class QuizDisplayClient {
             }
 
             item.innerHTML = `
-                <span class="font-semibold \${isFinal && index < 3 ? 'text-yellow-300' : 'text-slate-100'}">\${medal}\${index + 1}. \${player.name}</span>
-                <span class="font-bold \${isFinal && index < 3 ? 'text-yellow-300' : 'text-green-400'}">\${player.score} pts</span>
+                <span class="font-semibold ${isFinal && index < 3 ? 'text-yellow-300' : 'text-slate-100'}">${medal}${index + 1}. ${player.name}</span>
+                <span class="font-bold ${isFinal && index < 3 ? 'text-yellow-300' : 'text-green-400'}">${player.score} pts</span>
             `;
             listElement.appendChild(item);
         });

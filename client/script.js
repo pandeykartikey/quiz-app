@@ -77,8 +77,8 @@ class QuizClient {
     connectSocket() { /* ... keep existing connectSocket ... */
         this.socket = io({ reconnectionAttempts: 5, reconnectionDelay: 3000 });
         this.socket.on('connect', () => this.updateConnectionStatus('Connected', 'success'));
-        this.socket.on('disconnect', (reason) => this.updateConnectionStatus(`Disconnected: \${reason}`, 'error'));
-        this.socket.on('connect_error', (err) => this.updateConnectionStatus(`Connection Error: \${err.message}`, 'error'));
+        this.socket.on('disconnect', (reason) => this.updateConnectionStatus(`Disconnected: ${reason}`, 'error'));
+        this.socket.on('connect_error', (err) => this.updateConnectionStatus(`Connection Error: ${err.message}`, 'error'));
         this.setupSocketEventListeners();
     }
 
@@ -148,7 +148,7 @@ class QuizClient {
         this.socket.on('pounceSubmissionResult', (result) => {
             if (result.success) {
                 this.playerPouncedThisQuestion = true; // Mark self as submitted
-                this.elements.pounceSubmissionFeedback.textContent = `Pounce submitted! Your score is now \${result.score}.`;
+                this.elements.pounceSubmissionFeedback.textContent = `Pounce submitted! Your score is now ${result.score}.`;
                 this.elements.pounceInputArea.classList.add('hidden'); // Hide input area
                 this.elements.pounceStatusMessage.textContent = "Pounce answer recorded.";
                 if (this.personalPounceAnswerTimerInterval) clearInterval(this.personalPounceAnswerTimerInterval);
@@ -210,7 +210,7 @@ class QuizClient {
         if (this.globalPounceOptInTimerInterval) clearInterval(this.globalPounceOptInTimerInterval);
         const update = () => {
             const timeLeft = Math.max(0, Math.round((endTime - Date.now()) / 1000));
-            this.elements.pounceTimerDisplay.textContent = `Opt-in Time: \${timeLeft}s`;
+            this.elements.pounceTimerDisplay.textContent = `Opt-in Time: ${timeLeft}s`;
             if (timeLeft <= 0) {
                 clearInterval(this.globalPounceOptInTimerInterval);
                 this.elements.pounceTimerDisplay.textContent = "Opt-in Closed";
@@ -232,7 +232,7 @@ class QuizClient {
         const update = () => {
             const timeLeft = Math.max(0, Math.round((endTime - Date.now()) / 1000));
             // Update a different timer display or prepend to existing one
-            this.elements.pounceTimerDisplay.textContent = `Your Answer Time: \${timeLeft}s`;
+            this.elements.pounceTimerDisplay.textContent = `Your Answer Time: ${timeLeft}s`;
             if (timeLeft <= 0) {
                 clearInterval(this.personalPounceAnswerTimerInterval);
                 this.elements.pounceTimerDisplay.textContent = "Your Answer Time Over";
@@ -351,7 +351,7 @@ class QuizClient {
             case 'bounce':
                 // ... (existing logic for bounce phase) ...
                  this.elements.bouncePhaseUi.classList.remove('hidden');
-                this.elements.bounceTurnInfo.textContent = state.currentBouncer ? `Bounce Turn: \${state.currentBouncer.name}` : "Waiting for bouncer...";
+                this.elements.bounceTurnInfo.textContent = state.currentBouncer ? `Bounce Turn: ${state.currentBouncer.name}` : "Waiting for bouncer...";
                 if (myServerState && !myServerState.isEligibleForBounce) {
                     this.elements.bounceStatusMessage.textContent = "Not eligible for bounce this round.";
                     this.elements.passBounceBtn.classList.add('hidden');

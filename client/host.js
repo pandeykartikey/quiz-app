@@ -44,8 +44,8 @@ class QuizmasterClient {
     connectSocket() {
         this.socket = io({ reconnectionAttempts: 5, reconnectionDelay: 3000, });
         this.socket.on('connect', () => { this.updateConnectionStatus('Connected', 'success'); if (this.isAuthenticated && this.quizmasterCode) { this.socket.emit('quizmasterLogin', { quizmasterCode: this.quizmasterCode }); }});
-        this.socket.on('disconnect', (reason) => this.updateConnectionStatus(`Disconnected: \${reason}`, 'error'));
-        this.socket.on('connect_error', (err) => this.updateConnectionStatus(`Connection Error: \${err.message}`, 'error'));
+        this.socket.on('disconnect', (reason) => this.updateConnectionStatus(`Disconnected: ${reason}`, 'error'));
+        this.socket.on('connect_error', (err) => this.updateConnectionStatus(`Connection Error: ${err.message}`, 'error'));
         this.setupSocketEventListeners();
     }
     tryAutoLogin() {
@@ -127,7 +127,7 @@ class QuizmasterClient {
         });
          this.socket.on('error', (data) => { // General error handler from server
             console.error('Server error:', data.message);
-            alert(`Server error: \${data.message}`); // Simple alert for now
+            alert(`Server error: ${data.message}`); // Simple alert for now
         });
     }
     setupEventListeners() {
@@ -143,7 +143,7 @@ class QuizmasterClient {
         this.elements.playerList.addEventListener('click', (event) => {
             if (event.target.classList.contains('adhoc-points-btn')) {
                 const playerId = event.target.dataset.playerId;
-                const inputElement = this.elements.playerList.querySelector(`input[data-player-id="\${playerId}"]`);
+                const inputElement = this.elements.playerList.querySelector(`input[data-player-id="${playerId}"]`);
                 if (inputElement) {
                     const pointsDelta = parseInt(inputElement.value, 10);
                     if (!isNaN(pointsDelta)) {
@@ -160,7 +160,7 @@ class QuizmasterClient {
         if (!this.isAuthenticated) return;
         try {
             const response = await fetch('/api/qr-code');
-            if (!response.ok) throw new Error(`QR Code API Error: \${response.status}`);
+            if (!response.ok) throw new Error(`QR Code API Error: ${response.status}`);
             const data = await response.json();
             this.elements.qrCodeImage.src = data.qrCode;
             this.elements.qrCodeImage.classList.remove('hidden');
@@ -177,7 +177,7 @@ class QuizmasterClient {
         this.elements.loginPromptSection.classList.add('hidden');
 
         this.elements.quizPhaseDisplay.textContent = state.quizPhase?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'N/A';
-        this.elements.currentQuestionDisplay.textContent = state.currentQuestion ? `#\${state.currentQuestion.questionNumber} (\${state.currentQuestion.externalId || 'N/A'})` : 'N/A';
+        this.elements.currentQuestionDisplay.textContent = state.currentQuestion ? `#${state.currentQuestion.questionNumber} (${state.currentQuestion.externalId || 'N/A'})` : 'N/A';
         this.elements.accessCodeDisplay.textContent = state.accessCode || 'N/A';
 
         const players = state.allPlayersDetailed || state.players || [];
@@ -194,23 +194,23 @@ class QuizmasterClient {
             let playerPounceStatus = '';
             if (state.quizPhase === 'pounce_opt_in' || state.quizPhase === 'pounce_answering_window_active' || state.quizPhase === 'bounce_pending_evaluation' || state.quizPhase === 'results') {
                 if (player.pouncedThisQuestion) {
-                    playerPounceStatus = ` <span class="\${player.pounceCorrect ? 'text-green-400' : 'text-red-400'}">(Pounced)</span>`;
+                    playerPounceStatus = ` <span class="${player.pounceCorrect ? 'text-green-400' : 'text-red-400'}">(Pounced)</span>`;
                 } else if (player.hasOptedInPounce) {
                     playerPounceStatus = ' <span class="text-yellow-400">(Opted-In)</span>';
                 }
             }
             playerInfo.innerHTML = `
-                <span class="font-semibold">\${player.name} \${player.connected ? '🟢' : '🔴'}\${playerPounceStatus}</span>
-                <span class="font-bold text-green-400">\${player.score} pts</span>
+                <span class="font-semibold">${player.name} ${player.connected ? '🟢' : '🔴'}${playerPounceStatus}</span>
+                <span class="font-bold text-green-400">${player.score} pts</span>
             `;
             item.appendChild(playerInfo);
 
             const adhocControls = document.createElement('div');
             adhocControls.className = 'flex items-center space-x-2 mt-1';
             adhocControls.innerHTML = `
-                <input type="number" placeholder="±pts" data-player-id="\${player.id}"
+                <input type="number" placeholder="±pts" data-player-id="${player.id}"
                        class="w-20 px-2 py-1 text-sm bg-slate-600 border border-slate-500 rounded focus:ring-1 focus:ring-teal-500 text-white">
-                <button data-player-id="\${player.id}"
+                <button data-player-id="${player.id}"
                         class="adhoc-points-btn btn bg-teal-500 hover:bg-teal-600 text-xs py-1 px-3">
                     Adjust
                 </button>
@@ -247,8 +247,8 @@ class QuizmasterClient {
             if (submissions.length > 0) {
                 submissions.forEach(sub => {
                     const item = document.createElement('div');
-                    item.className = `p-2 rounded-md text-sm \${sub.isCorrect ? 'bg-green-600/30' : 'bg-red-600/30'}`;
-                    item.innerHTML = `<span class="font-semibold">\${sub.name}:</span> "\${sub.answer}" (\${sub.isCorrect ? 'Correct ✅' : 'Incorrect ❌'})`;
+                    item.className = `p-2 rounded-md text-sm ${sub.isCorrect ? 'bg-green-600/30' : 'bg-red-600/30'}`;
+                    item.innerHTML = `<span class="font-semibold">${sub.name}:</span> "${sub.answer}" (${sub.isCorrect ? 'Correct ✅' : 'Incorrect ❌'})`;
                     this.elements.pounceSubmissionsList.appendChild(item);
                 });
             } else {
@@ -273,8 +273,8 @@ class QuizmasterClient {
                 const player = players.find(p => p.id === playerId);
                 if (player && player.isEligibleForBounce) {
                     const item = document.createElement('div');
-                    item.className = `p-2 rounded-md flex justify-between items-center \${player.id === currentBouncerId ? 'bg-yellow-600/30' : 'bg-slate-700/50'}`;
-                    item.innerHTML = `<span>\${player.name}</span>`;
+                    item.className = `p-2 rounded-md flex justify-between items-center ${player.id === currentBouncerId ? 'bg-yellow-600/30' : 'bg-slate-700/50'}`;
+                    item.innerHTML = `<span>${player.name}</span>`;
 
                     if (player.id === currentBouncerId) {
                         const controlsDiv = document.createElement('div');
@@ -315,7 +315,7 @@ class QuizmasterClient {
         if (this.globalPounceOptInTimerInterval) clearInterval(this.globalPounceOptInTimerInterval);
         const update = () => {
             const timeLeft = Math.max(0, Math.round((endTime - Date.now()) / 1000));
-            this.elements.pounceOptInTimerDisplay.textContent = `Pounce Opt-In Ends In: \${timeLeft}s`;
+            this.elements.pounceOptInTimerDisplay.textContent = `Pounce Opt-In Ends In: ${timeLeft}s`;
             if (timeLeft <= 0) {
                 clearInterval(this.globalPounceOptInTimerInterval);
                 this.elements.pounceOptInTimerDisplay.textContent = "Pounce Opt-In Window Closed.";
