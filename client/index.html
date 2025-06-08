@@ -98,7 +98,7 @@
         </section>
 
         <!-- Player Quiz Area (Initially Hidden) -->
-        <section id="player-quiz-area" class="hidden w-full max-w-2xl animate-fade-in">
+        <section id="player-quiz-area" class="card animate-pop-in hidden w-full max-w-2xl">
             <div class="bg-slate-800/50 backdrop-blur-md shadow-2xl rounded-xl p-6 md:p-8">
                 <!-- Quiz Header Info -->
                 <div class="mb-6 text-center">
@@ -123,15 +123,14 @@
                 <div id="pounce-phase-ui" class="hidden my-6 space-y-4 text-center">
                     <p id="pounce-status-message" class="text-lg text-orange-400"></p>
                     <div id="pounce-timer-display" class="text-2xl font-bold text-orange-400"></div>
-                    <button id="pounce-action-btn" class="px-8 py-3 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-lg shadow-md transition-transform transform hover:scale-105">
+                    <button id="pounce-action-btn" class="btn btn-warning px-8 py-3 text-lg transform hover:scale-110">
                         POUNCE! ⚡
                     </button>
                     <div id="pounce-input-area" class="hidden space-y-3 pt-3">
                         <label for="pounce-answer-input" class="block text-sm font-medium text-slate-300">Your Secret Pounce Answer:</label>
-                        <input type="text" id="pounce-answer-input" maxlength="100"
-                               class="w-full max-w-sm mx-auto px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 placeholder-slate-400"
+                        <input type="text" id="pounce-answer-input" class="input-field focus:ring-orange-500 focus:border-orange-500 max-w-sm mx-auto" maxlength="100"
                                placeholder="Type your pounce answer...">
-                        <button id="submit-pounce-btn" class="px-6 py-2 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg shadow-sm transition-colors">
+                        <button id="submit-pounce-btn" class="btn btn-success px-6 py-2">
                             Submit Pounce
                         </button>
                     </div>
@@ -142,7 +141,7 @@
                 <div id="bounce-phase-ui" class="hidden my-6 space-y-4 text-center">
                     <p id="bounce-status-message" class="text-lg text-cyan-400"></p>
                     <div id="bounce-turn-info" class="text-xl font-semibold"></div>
-                    <button id="pass-bounce-btn" class="hidden px-8 py-3 bg-sky-500 hover:bg-sky-600 text-white font-semibold rounded-lg shadow-md transition-transform transform hover:scale-105">
+                    <button id="pass-bounce-btn" class="btn btn-secondary px-8 py-3 transform hover:scale-110 hidden">
                         PASS Turn 🤚
                     </button>
                 </div>
