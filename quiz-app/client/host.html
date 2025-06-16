@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quizmaster Controls</title>
+    <link rel="stylesheet" href="style.css"> <!-- Assuming a style.css might be added later -->
+</head>
+<body>
+    <h1>Quizmaster Controls</h1>
+    <div id="host-status-display">Initializing Quizmaster controls...</div>
+
+    <div>
+        <button id="start-question-btn">Next Question / Start Question</button>
+        <button id="pounce-start-btn">Start Pounce Phase</button>
+        <button id="bounce-start-btn">Start Bounce Phase</button>
+    </div>
+
+    <div id="current-question-info">Question: Not Started - Phase: None</div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="host.js"></script>
+</body>
+</html>
