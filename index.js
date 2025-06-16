@@ -3,12 +3,16 @@ const app = express();
 const http = require('http').Server(app);
 const io = require('socket.io')(http);
 
-app.use(express.static('client'));
+app.use(express.static('quiz-app/client'));
 
 const port = process.env.PORT || 3000;
 
 app.get('/', (req, res) => {
-  res.sendFile(__dirname + '/client/index.html');
+  res.sendFile(__dirname + '/quiz-app/client/index.html');
+});
+
+app.get('/host', (req, res) => {
+  res.sendFile(__dirname + '/quiz-app/client/host.html');
 });
 
 io.on('connection', (socket) => {

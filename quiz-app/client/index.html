@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Player</title>
+    <link rel="stylesheet" href="/style.css"> <!-- Assuming a style.css might be added later -->
+    <style>
+        /* Basic styling for layout - can be moved to style.css */
+        .section {
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="entry-section">
+        <div class="section" id="quizmaster-login-section">
+            <h2>Quizmaster Login</h2>
+            <input type="password" id="quizmaster-code" placeholder="Quizmaster Code">
+            <button id="quizmaster-login-btn">Login as Quizmaster</button>
+            <div id="quizmaster-error" style="color: red;"></div>
+        </div>
+
+        <div class="section" id="player-join-section">
+            <h2>Join Quiz</h2>
+            <input type="text" id="player-name" placeholder="Your Name"> <!-- Initially not disabled, per revised plan -->
+            <input type="text" id="quiz-code" placeholder="Quiz Code (Optional)"> <!-- Initially not disabled, per revised plan -->
+            <button id="join-quiz-btn">Join Quiz</button>
+            <div id="player-error" style="color: red;"></div>
+        </div>
+    </div>
+
+    <div id="quiz-interface-section" class="hidden"> <!-- Initially hidden -->
+        <h1>Quiz Player View</h1>
+        <div id="status-display">Connecting to server...</div>
+        <div id="question-display">Waiting for quiz to start...</div>
+        <!-- Player interaction elements will go here later -->
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/script.js"></script>
+</body>
+</html>
