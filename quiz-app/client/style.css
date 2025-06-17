@@ -234,3 +234,29 @@ input[type="text"]:focus, input[type="password"]:focus {
     font-weight: bold;
     margin-top: 10px;
 }
+
+/* Question details for quizmaster */
+#current-question-details {
+    background: #e8f6f3;
+    border: 2px solid #1abc9c;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+#question-text, #answer-text {
+    background: white;
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 10px;
+    border-left: 4px solid #1abc9c;
+}
+
+#question-text {
+    border-left-color: #3498db;
+}
+
+#answer-text {
+    border-left-color: #e74c3c;
+    font-weight: bold;
+}

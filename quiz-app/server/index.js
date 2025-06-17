@@ -2,6 +2,7 @@ const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
 const path = require('path'); // Added for serving client files
+const fs = require('fs'); // Added for reading questions.json
 
 const {
   quizState,
@@ -22,6 +23,62 @@ const io = socketIo(server);
 
 const PORT = process.env.PORT || 3000;
 
+// Timer management for pounce phase
+let pouncePhaseTimer = null;
+
+// Load questions from questions.json
+let questions = [];
+try {
+  const questionsData = fs.readFileSync(path.join(__dirname, 'questions.json'), 'utf8');
+  questions = JSON.parse(questionsData);
+  console.log(`Loaded ${questions.length} questions from questions.json`);
+} catch (error) {
+  console.error('Error loading questions.json:', error);
+  questions = []; // Fallback to empty array
+}
+
+// Helper function to get current question
+function getCurrentQuestion() {
+  const state = getQuizState();
+  if (state.currentQuestionIndex >= 0 && state.currentQuestionIndex < questions.length) {
+    return questions[state.currentQuestionIndex];
+  }
+  return null;
+}
+
+// Helper function to build enhanced state with current question
+function getEnhancedQuizState() {
+  const state = getQuizState();
+  const currentQuestion = getCurrentQuestion();
+  
+  return {
+    ...state,
+    currentQuestion: currentQuestion ? {
+      id: currentQuestion.id,
+      question: currentQuestion.question,
+      // Don't send the answer to clients for security
+    } : null,
+    totalQuestions: questions.length
+  };
+}
+
+// Helper function to clear pounce timer
+function clearPounceTimer() {
+  if (pouncePhaseTimer) {
+    clearTimeout(pouncePhaseTimer);
+    pouncePhaseTimer = null;
+  }
+}
+
+// Helper function to auto-end pounce phase
+function autoEndPouncePhase() {
+  console.log('Pounce phase auto-ended after timer expiry');
+  setPhase('question'); // Reset to question phase
+  const updatedState = getEnhancedQuizState();
+  io.emit('quizStateUpdate', updatedState);
+  io.emit('pounce-phase-ended', { reason: 'timer-expired' });
+}
+
 // Serve static files (like script.js, host.js, style.css) from the '../client' directory
 app.use(express.static(path.join(__dirname, '../client')));
 
@@ -39,11 +96,11 @@ io.on('connection', (socket) => {
   console.log(`New client connected: ${socket.id}`);
 
   // Send current quiz state to newly connected client
-  socket.emit('quizStateUpdate', getQuizState());
+  socket.emit('quizStateUpdate', getEnhancedQuizState());
 
   socket.on('join-quiz', (playerName) => {
     addPlayer(socket.id, playerName);
-    const updatedState = getQuizState();
+    const updatedState = getEnhancedQuizState();
     socket.emit('join-success', { playerId: socket.id, quizState: updatedState });
     io.emit('quizStateUpdate', updatedState);
     console.log(`Player ${playerName} (ID: ${socket.id}) joined the quiz.`);
@@ -53,20 +110,22 @@ io.on('connection', (socket) => {
     console.log(`Client disconnected: ${socket.id}`);
     // Future enhancement: remove player from quizState.players if they disconnect
     // delete quizState.players[socket.id];
-    // io.emit('quizStateUpdate', getQuizState()); // Notify others
+    // io.emit('quizStateUpdate', getEnhancedQuizState()); // Notify others
   });
 
   // Quizmaster action handlers
   socket.on('start-quiz', () => {
+    clearPounceTimer(); // Clear any existing timers
     startQuiz();
-    const updatedState = getQuizState();
+    const updatedState = getEnhancedQuizState();
     console.log('Quizmaster started the quiz.');
     io.emit('quizStateUpdate', updatedState);
   });
 
   socket.on('end-quiz', () => {
+    clearPounceTimer(); // Clear any existing timers
     endQuiz();
-    const updatedState = getQuizState();
+    const updatedState = getEnhancedQuizState();
     console.log('Quizmaster ended the quiz.');
     io.emit('quizStateUpdate', updatedState);
   });
@@ -78,11 +137,35 @@ io.on('connection', (socket) => {
       return;
     }
     
+    // Check if there are more questions available
+    if (currentState.currentQuestionIndex + 1 >= questions.length) {
+      console.log('Cannot start question: No more questions available');
+      // Could automatically end the quiz here
+      clearPounceTimer(); // Clear any existing timers
+      endQuiz();
+      const updatedState = getEnhancedQuizState();
+      console.log('Quiz ended automatically - no more questions');
+      io.emit('quizStateUpdate', updatedState);
+      return;
+    }
+    
+    clearPounceTimer(); // Clear any existing timers when starting new question
     incrementQuestion();
     clearPounceAnswers(); // Clear pounce answers for the new question
-    const updatedState = getQuizState();
-    console.log(`Quizmaster started question ${updatedState.currentQuestionIndex + 1}`);
+    const updatedState = getEnhancedQuizState();
+    const currentQuestion = getCurrentQuestion();
+    
+    console.log(`Quizmaster started question ${updatedState.currentQuestionIndex + 1}: ${currentQuestion ? currentQuestion.question : 'Unknown'}`);
     io.emit('quizStateUpdate', updatedState);
+    
+    // Send question content specifically to quizmaster for their reference
+    // This includes the answer for the quizmaster's use
+    io.emit('question-started', {
+      questionNumber: updatedState.currentQuestionIndex + 1,
+      question: currentQuestion ? currentQuestion.question : null,
+      answer: currentQuestion ? currentQuestion.answer : null, // Only for quizmaster
+      totalQuestions: questions.length
+    });
   });
 
   socket.on('pounce-start', () => {
@@ -92,10 +175,25 @@ io.on('connection', (socket) => {
       return;
     }
     
+    if (currentState.currentQuestionIndex === -1) {
+      console.log('Cannot start pounce: No question is currently active');
+      return;
+    }
+    
+    // Clear any existing pounce timer
+    clearPounceTimer();
+    
     setPhase('pounce');
-    const updatedState = getQuizState();
+    const updatedState = getEnhancedQuizState();
     console.log('Quizmaster initiated pounce phase.');
     io.emit('quizStateUpdate', updatedState);
+    
+    // Start server-side timer for pounce phase (25 seconds total: 10s to pounce + 15s to answer)
+    pouncePhaseTimer = setTimeout(() => {
+      autoEndPouncePhase();
+    }, 25000); // 25 seconds
+    
+    console.log('Pounce phase timer started - will auto-end in 25 seconds');
   });
 
   socket.on('bounce-start', () => {
@@ -105,8 +203,16 @@ io.on('connection', (socket) => {
       return;
     }
     
+    if (currentState.currentQuestionIndex === -1) {
+      console.log('Cannot start bounce: No question is currently active');
+      return;
+    }
+    
+    // Clear any existing pounce timer when switching to bounce
+    clearPounceTimer();
+    
     setPhase('bounce');
-    const updatedState = getQuizState();
+    const updatedState = getEnhancedQuizState();
     console.log('Quizmaster initiated bounce phase.');
     io.emit('quizStateUpdate', updatedState);
   });
@@ -120,9 +226,16 @@ io.on('connection', (socket) => {
       return;
     }
 
+    // Check if player already submitted an answer for this question
     const playerId = socket.id;
+    if (currentState.pounceAnswers[playerId]) {
+      console.log(`Pounce answer submission rejected: Player ${playerId} already submitted an answer`);
+      socket.emit('pounce-submission-ack', { success: false, message: 'You have already submitted an answer for this question' });
+      return;
+    }
+
     recordPounceAnswer(playerId, answer);
-    const player = getQuizState().players[playerId];
+    const player = getEnhancedQuizState().players[playerId];
     const playerName = player ? player.name : 'Unknown Player';
 
     console.log(`Player ${playerName} (ID: ${playerId}) submitted pounce answer: ${answer}`);
@@ -142,13 +255,18 @@ io.on('connection', (socket) => {
   socket.on('evaluate-pounce-answer', ({ playerId, isCorrect }) => {
     const points = isCorrect ? 10 : -10;
     updateScore(playerId, points);
-    const updatedState = getQuizState();
+    const updatedState = getEnhancedQuizState();
+    const player = updatedState.players[playerId];
+    
     io.emit('quizStateUpdate', updatedState);
-    console.log(`Pounce answer for ${playerId} evaluated as ${isCorrect ? 'correct' : 'incorrect'}. Score updated.`);
+    console.log(`Pounce answer for ${playerId} (${player ? player.name : 'Unknown'}) evaluated as ${isCorrect ? 'correct' : 'incorrect'}. Score updated to ${player ? player.score : 'Unknown'}.`);
 
-    // Optionally, notify the specific player and quizmaster
-    // io.to(playerId).emit('pounce-answer-evaluated', { isCorrect, score: updatedState.players[playerId]?.score });
-    // socket.emit('pounce-evaluation-ack', { playerId, status: 'evaluated' }); // Ack to quizmaster
+    // Notify the specific player about their evaluation
+    io.to(playerId).emit('pounce-answer-evaluated', { 
+      isCorrect, 
+      pointsAwarded: points,
+      newScore: player ? player.score : 0 
+    });
   });
 });
 

@@ -9,6 +9,9 @@ let pounceStartBtn;
 let bounceStartBtn;
 let pounceSubmissionsContainer; // For displaying pounce answers
 let playerScoresContainer;    // For displaying player scores/leaderboard
+let currentQuestionDetails;   // For displaying current question and answer
+let questionTextDiv;
+let answerTextDiv;
 
 document.addEventListener('DOMContentLoaded', () => {
     hostStatusDisplay = document.getElementById('host-status-display');
@@ -20,6 +23,9 @@ document.addEventListener('DOMContentLoaded', () => {
     bounceStartBtn = document.getElementById('bounce-start-btn');
     pounceSubmissionsContainer = document.getElementById('pounce-submissions-container');
     playerScoresContainer = document.getElementById('player-scores-container');
+    currentQuestionDetails = document.getElementById('current-question-details');
+    questionTextDiv = document.getElementById('question-text');
+    answerTextDiv = document.getElementById('answer-text');
 
     console.log('Quizmaster DOM fully loaded. UI elements selected.');
     updateHostStatus('Quizmaster interface loaded. Connecting to server...');
@@ -73,15 +79,28 @@ function updateCurrentQuizmasterInfo(state) {
     
     if (state.quizStatus === 'not_started') {
         message = "Quiz Status: Not Started";
+        if (currentQuestionDetails) currentQuestionDetails.classList.add('hidden');
     } else if (state.quizStatus === 'finished') {
         message = "Quiz Status: Finished";
+        if (currentQuestionDetails) currentQuestionDetails.classList.add('hidden');
     } else if (state.quizStatus === 'active') {
         if (state.currentQuestionIndex === -1) {
             message = "Quiz Status: Active - No Question Yet";
+            if (currentQuestionDetails) currentQuestionDetails.classList.add('hidden');
         } else {
-            message = `Quiz Status: Active - Question ${state.currentQuestionIndex + 1}`;
+            const questionNumber = state.currentQuestionIndex + 1;
+            const totalQuestions = state.totalQuestions || '?';
+            message = `Quiz Status: Active - Question ${questionNumber}/${totalQuestions}`;
+            
             if (state.currentPhase) {
                 message += ` - Phase: ${state.currentPhase}`;
+            }
+            
+            // Show question details if we have question data
+            if (state.currentQuestion && state.currentQuestion.question) {
+                if (currentQuestionDetails) currentQuestionDetails.classList.remove('hidden');
+                if (questionTextDiv) questionTextDiv.textContent = `Q: ${state.currentQuestion.question}`;
+                // Answer will be shown when question-started event is received
             }
         }
     }
@@ -102,9 +121,21 @@ function updateCurrentQuizmasterInfo(state) {
         } else if (state.quizStatus === 'active') {
             startQuizBtn.disabled = true;
             endQuizBtn.disabled = false;
-            startQuestionBtn.disabled = false;
+            
+            // Disable start question if no more questions available
+            if (state.currentQuestionIndex + 1 >= (state.totalQuestions || 0)) {
+                startQuestionBtn.disabled = true;
+                startQuestionBtn.textContent = "No More Questions";
+            } else {
+                startQuestionBtn.disabled = false;
+                startQuestionBtn.textContent = "Next Question";
+            }
             
             if (state.currentPhase === 'pounce' || state.currentPhase === 'bounce') {
+                pounceStartBtn.disabled = true;
+                bounceStartBtn.disabled = true;
+            } else if (state.currentQuestionIndex === -1) {
+                // No question active yet
                 pounceStartBtn.disabled = true;
                 bounceStartBtn.disabled = true;
             } else {
@@ -206,6 +237,24 @@ socket.on('pounce-answer-received', ({ playerId, playerName, answer }) => {
     }
 
     displayPounceAnswer(playerId, playerName, answer);
+});
+
+socket.on('question-started', (questionData) => {
+    console.log('Quizmaster received question-started:', questionData);
+    
+    // Show question details section
+    if (currentQuestionDetails) currentQuestionDetails.classList.remove('hidden');
+    
+    // Update question and answer display
+    if (questionTextDiv && questionData.question) {
+        questionTextDiv.innerHTML = `<strong>Question:</strong> ${questionData.question}`;
+    }
+    
+    if (answerTextDiv && questionData.answer) {
+        answerTextDiv.innerHTML = `<strong>Answer:</strong> ${questionData.answer}`;
+    }
+    
+    updateHostStatus(`Question ${questionData.questionNumber} started - Answer: ${questionData.answer || 'Unknown'}`);
 });
 
 function displayPounceAnswer(playerId, playerName, answer, alreadyEvaluated = false) {

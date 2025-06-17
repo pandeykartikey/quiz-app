@@ -134,13 +134,19 @@ function clearPounceTimers() {
 function handlePounceButtonClick() {
   if (!pounceButton || !pounceAnswerSection || !pounceTimerDisplay) return;
 
+  console.log('Player clicked pounce button');
+  
   pounceButton.disabled = true;
-  pounceButton.classList.add('hidden'); // Or change text: pounceButton.textContent = "Pounced!";
+  pounceButton.textContent = "Pounced!";
   clearPounceTimers(); // Clear the initial pounce decision timer
 
+  // Show the answer input section
   pounceAnswerSection.classList.remove('hidden');
-  if(pounceAnswerInput) pounceAnswerInput.focus();
-  if(pounceTimerDisplay) pounceTimerDisplay.textContent = "Time to answer: 15s"; // Example
+  if(pounceAnswerInput) {
+    pounceAnswerInput.focus();
+    pounceAnswerInput.value = ''; // Clear any previous input
+  }
+  if(pounceTimerDisplay) pounceTimerDisplay.textContent = "Time to answer: 15s";
 
   let answerTimeRemaining = 15; // 15 seconds for answering
   pounceAnswerTimer = setInterval(() => {
@@ -150,9 +156,8 @@ function handlePounceButtonClick() {
       clearPounceTimers();
       if(pounceTimerDisplay) pounceTimerDisplay.textContent = "Time's up!";
       pounceAnswerSection.classList.add('hidden');
-      if(pounceButton && !pounceButton.classList.contains('hidden')) { // If pounce button was re-shown by mistake
-          pounceButton.classList.add('hidden');
-      }
+      pounceButton.classList.add('hidden'); // Hide the pounce button completely
+      updateStatus('Pounce answer time expired');
     }
   }, 1000);
 }
@@ -161,18 +166,20 @@ function handleSubmitPounceAnswer() {
   if (!pounceAnswerInput || !pounceAnswerSection) return;
 
   const answer = pounceAnswerInput.value.trim();
-  if (answer) {
-    socket.emit('submit-pounce-answer', { answer });
-    pounceAnswerInput.value = ''; // Clear input
+  if (!answer) {
+    updateStatus('Please enter an answer before submitting');
+    return;
   }
+
+  console.log('Submitting pounce answer:', answer);
+  socket.emit('submit-pounce-answer', { answer });
+  pounceAnswerInput.value = ''; // Clear input
   pounceAnswerSection.classList.add('hidden');
   clearPounceTimers();
-  if(pounceTimerDisplay) pounceTimerDisplay.textContent = ""; // Clear timer display
-  if(pounceButton && !pounceButton.classList.contains('hidden')) { // Hide pounce button if it wasn't already
-      pounceButton.classList.add('hidden');
-  }
+  if(pounceTimerDisplay) pounceTimerDisplay.textContent = "Answer submitted!";
+  pounceButton.classList.add('hidden'); // Hide pounce button after submission
+  updateStatus('Pounce answer submitted, waiting for evaluation...');
 }
-
 
 function updateStatus(message) {
   if (statusDisplay) {
@@ -192,7 +199,15 @@ function updateQuestionInfo(state) {
     if (state.currentQuestionIndex === -1) {
       message = "Quiz is active - waiting for first question...";
     } else {
-      message = `Question ${state.currentQuestionIndex + 1}`;
+      const questionNumber = state.currentQuestionIndex + 1;
+      const totalQuestions = state.totalQuestions || '?';
+      
+      if (state.currentQuestion && state.currentQuestion.question) {
+        message = `Question ${questionNumber}/${totalQuestions}: ${state.currentQuestion.question}`;
+      } else {
+        message = `Question ${questionNumber}/${totalQuestions}`;
+      }
+      
       if (state.currentPhase) {
         message += ` - ${state.currentPhase.charAt(0).toUpperCase() + state.currentPhase.slice(1)} Phase`;
       }
@@ -283,14 +298,22 @@ try {
       playerScoreDisplay.textContent = "Score: 0";
     }
 
+    // Get pounce section container
+    const pounceSection = document.getElementById('pounce-section');
+
     // Pounce UI logic
     clearPounceTimers(); // Clear any existing pounce timers
 
     if (state.quizStatus === 'active' && state.currentPhase === 'pounce') {
       updateStatus('Pounce phase! Click "Pounce" to answer.');
+      
+      // Show the entire pounce section
+      if (pounceSection) pounceSection.classList.remove('hidden');
+      
       if (pounceButton) {
         pounceButton.classList.remove('hidden');
         pounceButton.disabled = false;
+        pounceButton.textContent = 'Pounce!'; // Reset button text
       }
       if (pounceAnswerSection) pounceAnswerSection.classList.add('hidden'); // Hide answer input initially
       if (pounceTimerDisplay) {
@@ -313,6 +336,8 @@ try {
       }, 1000);
 
     } else { // Not pounce phase
+      // Hide the entire pounce section
+      if (pounceSection) pounceSection.classList.add('hidden');
       if (pounceButton) pounceButton.classList.add('hidden');
       if (pounceAnswerSection) pounceAnswerSection.classList.add('hidden');
       if (pounceTimerDisplay) pounceTimerDisplay.classList.add('hidden');
@@ -344,6 +369,50 @@ try {
     }
   });
 
+  socket.on('question-started', (questionData) => {
+    console.log('New question started:', questionData);
+    if (questionData.question) {
+      // Update question display with the new question
+      if (questionDisplay) {
+        const questionNumber = questionData.questionNumber || '?';
+        const totalQuestions = questionData.totalQuestions || '?';
+        questionDisplay.textContent = `Question ${questionNumber}/${totalQuestions}: ${questionData.question}`;
+      }
+    }
+  });
+
+  socket.on('pounce-answer-evaluated', ({ isCorrect, pointsAwarded, newScore }) => {
+    if (isCorrect) {
+      updateStatus(`Correct! You earned ${pointsAwarded} points. New score: ${newScore}`);
+    } else {
+      updateStatus(`Incorrect. You lost ${Math.abs(pointsAwarded)} points. New score: ${newScore}`);
+    }
+    
+    // Update score display immediately
+    if (playerScoreDisplay) {
+      playerScoreDisplay.textContent = `Score: ${newScore}`;
+    }
+  });
+
+  socket.on('pounce-phase-ended', ({ reason }) => {
+    console.log('Pounce phase ended:', reason);
+    clearPounceTimers();
+    
+    // Hide all pounce UI elements
+    if (pounceButton) {
+      pounceButton.classList.add('hidden');
+      pounceButton.disabled = true;
+    }
+    if (pounceAnswerSection) pounceAnswerSection.classList.add('hidden');
+    if (pounceTimerDisplay) {
+      pounceTimerDisplay.classList.add('hidden');
+      pounceTimerDisplay.textContent = '';
+    }
+    
+    if (reason === 'timer-expired') {
+      updateStatus('Pounce phase ended - time expired');
+    }
+  });
 
 } catch (error) {
   console.error("Player Socket.IO connection error:", error);
