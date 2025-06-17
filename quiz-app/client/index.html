@@ -38,7 +38,17 @@
     <div id="quiz-interface-section" class="hidden"> <!-- Initially hidden -->
         <h1>Quiz Player View</h1>
         <div id="status-display">Connecting to server...</div>
+        <div id="player-score-display">Score: 0</div>
         <div id="question-display">Waiting for quiz to start...</div>
+
+        <div id="pounce-section" class="hidden">
+            <button id="pounce-btn">Pounce!</button>
+            <div id="pounce-timer-display"></div>
+            <div id="pounce-answer-section" class="hidden">
+                <input type="text" id="pounce-answer-input" placeholder="Your answer...">
+                <button id="submit-pounce-answer-btn">Submit Answer</button>
+            </div>
+        </div>
         <!-- Player interaction elements will go here later -->
     </div>
 
