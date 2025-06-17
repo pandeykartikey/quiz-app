@@ -2,6 +2,8 @@ console.log('Quizmaster host script loading.');
 
 let hostStatusDisplay;
 let currentQuestionInfoDisplay;
+let startQuizBtn;
+let endQuizBtn;
 let startQuestionBtn;
 let pounceStartBtn;
 let bounceStartBtn;
@@ -11,6 +13,8 @@ let playerScoresContainer;    // For displaying player scores/leaderboard
 document.addEventListener('DOMContentLoaded', () => {
     hostStatusDisplay = document.getElementById('host-status-display');
     currentQuestionInfoDisplay = document.getElementById('current-question-info');
+    startQuizBtn = document.getElementById('start-quiz-btn');
+    endQuizBtn = document.getElementById('end-quiz-btn');
     startQuestionBtn = document.getElementById('start-question-btn');
     pounceStartBtn = document.getElementById('pounce-start-btn');
     bounceStartBtn = document.getElementById('bounce-start-btn');
@@ -26,11 +30,22 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
+    startQuizBtn.addEventListener('click', () => {
+        console.log('Start Quiz button clicked.');
+        socket.emit('start-quiz');
+        updateHostStatus('Sent "start-quiz" event.');
+    });
+
+    endQuizBtn.addEventListener('click', () => {
+        console.log('End Quiz button clicked.');
+        socket.emit('end-quiz');
+        updateHostStatus('Sent "end-quiz" event.');
+    });
+
     startQuestionBtn.addEventListener('click', () => {
         console.log('Start Question button clicked.');
         socket.emit('start-question');
         updateHostStatus('Sent "start-question" event.');
-        // Disable button temporarily to prevent double clicks?
     });
 
     pounceStartBtn.addEventListener('click', () => {
@@ -53,40 +68,63 @@ function updateHostStatus(message) {
     console.log(`Host Status: ${message}`);
 }
 
-function updateCurrentQuizmasterInfo(questionIndex, phase) {
+function updateCurrentQuizmasterInfo(state) {
     let message = "";
-    if (questionIndex === -1 || typeof questionIndex === 'undefined') {
-        message = "Question: Not Started";
-    } else {
-        message = `Question: ${questionIndex + 1}`;
+    
+    if (state.quizStatus === 'not_started') {
+        message = "Quiz Status: Not Started";
+    } else if (state.quizStatus === 'finished') {
+        message = "Quiz Status: Finished";
+    } else if (state.quizStatus === 'active') {
+        if (state.currentQuestionIndex === -1) {
+            message = "Quiz Status: Active - No Question Yet";
+        } else {
+            message = `Quiz Status: Active - Question ${state.currentQuestionIndex + 1}`;
+            if (state.currentPhase) {
+                message += ` - Phase: ${state.currentPhase}`;
+            }
+        }
     }
-    message += ` - Phase: ${phase || 'N/A'}`;
 
     if (currentQuestionInfoDisplay) {
         currentQuestionInfoDisplay.textContent = message;
     }
     console.log(`Quizmaster Info Display: ${message}`);
 
-    // Potentially enable/disable buttons based on phase
-    if (pounceStartBtn && bounceStartBtn && startQuestionBtn) {
-        if (phase === 'pounce' || phase === 'bounce') {
+    // Update button states based on quiz status and phase
+    if (startQuizBtn && endQuizBtn && startQuestionBtn && pounceStartBtn && bounceStartBtn) {
+        if (state.quizStatus === 'not_started') {
+            startQuizBtn.disabled = false;
+            endQuizBtn.disabled = true;
+            startQuestionBtn.disabled = true;
             pounceStartBtn.disabled = true;
             bounceStartBtn.disabled = true;
-            // startQuestionBtn.disabled = true; // Or allow to end current question phase?
-        } else { // Default 'question' phase or null
-            pounceStartBtn.disabled = false;
-            bounceStartBtn.disabled = false;
-            // startQuestionBtn.disabled = false;
+        } else if (state.quizStatus === 'active') {
+            startQuizBtn.disabled = true;
+            endQuizBtn.disabled = false;
+            startQuestionBtn.disabled = false;
+            
+            if (state.currentPhase === 'pounce' || state.currentPhase === 'bounce') {
+                pounceStartBtn.disabled = true;
+                bounceStartBtn.disabled = true;
+            } else {
+                pounceStartBtn.disabled = false;
+                bounceStartBtn.disabled = false;
+            }
+        } else if (state.quizStatus === 'finished') {
+            startQuizBtn.disabled = false; // Allow restarting
+            endQuizBtn.disabled = true;
+            startQuestionBtn.disabled = true;
+            pounceStartBtn.disabled = true;
+            bounceStartBtn.disabled = true;
         }
     }
 }
-
 
 const socket = io();
 
 socket.on('connect', () => {
     console.log('Quizmaster connected to server. Socket ID:', socket.id);
-    // Ensure DOM is loaded before trying to update
     if (document.readyState === "loading") {
         document.addEventListener('DOMContentLoaded', () => updateHostStatus('Connected to server. Ready to control quiz.'));
     } else {
@@ -103,10 +141,9 @@ socket.on('disconnect', (reason) => {
     }
 });
 
-// Listen for state updates to update Quizmaster's own view
 socket.on('quizStateUpdate', (state) => {
     console.log('Quizmaster received quizStateUpdate:', state);
-    if (!hostStatusDisplay) { // Check if DOM is ready
+    if (!hostStatusDisplay) {
         document.addEventListener('DOMContentLoaded', () => handleQuizStateUpdateForHost(state));
         return;
     }
@@ -119,8 +156,8 @@ function handleQuizStateUpdateForHost(state) {
         return;
     }
 
-    updateCurrentQuizmasterInfo(state.currentQuestionIndex, state.currentPhase);
-    updateHostStatus(`State updated: Q=${state.currentQuestionIndex !== undefined ? state.currentQuestionIndex + 1 : 'N/A'}, Phase=${state.currentPhase}`);
+    updateCurrentQuizmasterInfo(state);
+    updateHostStatus(`State updated: Status=${state.quizStatus}, Q=${state.currentQuestionIndex !== undefined ? state.currentQuestionIndex + 1 : 'N/A'}, Phase=${state.currentPhase || 'None'}`);
 
     // Display Player Scores
     if (playerScoresContainer && state.players) {
@@ -130,7 +167,7 @@ function handleQuizStateUpdateForHost(state) {
             playerScoresContainer.innerHTML += '<p>No players have joined yet.</p>';
         } else {
             const ul = document.createElement('ul');
-            playersArray.sort((a, b) => b.score - a.score); // Sort by score descending
+            playersArray.sort((a, b) => b.score - a.score);
             playersArray.forEach(player => {
                 const li = document.createElement('li');
                 li.textContent = `${player.name}: ${player.score}`;
@@ -140,44 +177,30 @@ function handleQuizStateUpdateForHost(state) {
         }
     }
 
-    // Clear pounce submissions if the phase is no longer 'pounce' or if pounceAnswers is empty
-    // (e.g., new question started, or pounce phase ended by QM)
+    // Handle pounce submissions display
     if (pounceSubmissionsContainer && (state.currentPhase !== 'pounce' || Object.keys(state.pounceAnswers || {}).length === 0)) {
         pounceSubmissionsContainer.innerHTML = '<h3>Pounce Submissions:</h3><p>No pounce answers yet for this question, or pounce phase not active.</p>';
     }
-    // If it IS the pounce phase, we expect 'pounce-answer-received' to populate it,
-    // or if pounceAnswers were already there on a QM refresh, they could be populated here.
-    // For simplicity, we'll primarily rely on 'pounce-answer-received' for live updates.
-    // However, if state.pounceAnswers is populated and phase is pounce, could render them here.
-    // This might be useful if QM refreshes during pounce.
+    
     if (pounceSubmissionsContainer && state.currentPhase === 'pounce' && state.pounceAnswers) {
-        // If container is empty (or just has the placeholder), and there are answers in state
         if (pounceSubmissionsContainer.children.length <= 1 && Object.keys(state.pounceAnswers).length > 0) {
-             pounceSubmissionsContainer.innerHTML = '<h3>Pounce Submissions:</h3>'; // Clear placeholder
+             pounceSubmissionsContainer.innerHTML = '<h3>Pounce Submissions:</h3>';
              for (const playerId in state.pounceAnswers) {
                 const player = state.players[playerId];
                 const answer = state.pounceAnswers[playerId];
                 if (player && answer) {
-                    // Re-use display logic, ensure buttons are re-created if needed or handled.
-                    // This part could be complex if answers were already evaluated.
-                    // For now, we assume pounceAnswers in state are those not yet evaluated or QM needs to see them.
-                    // Simplified: just show them, evaluation state might need more robust handling for refresh.
-                    // displayPounceAnswer(playerId, player.name, answer, false); // false for 'alreadyEvaluated'
+                    displayPounceAnswer(playerId, player.name, answer, false);
                 }
              }
         }
     }
 }
 
-// Removed old specific handlers: handleNewQuestionForHost, handlePounceStartedForHost, handleBounceStartedForHost
-// Their logic is now intended to be covered by handleQuizStateUpdateForHost
-
 socket.on('pounce-answer-received', ({ playerId, playerName, answer }) => {
     if (!pounceSubmissionsContainer) {
         console.error("Pounce submissions container not found!");
         return;
     }
-    // If it's the first pounce answer, clear the placeholder message
     if (pounceSubmissionsContainer.querySelector('p')) {
         pounceSubmissionsContainer.innerHTML = '<h3>Pounce Submissions:</h3>';
     }
@@ -188,7 +211,7 @@ socket.on('pounce-answer-received', ({ playerId, playerName, answer }) => {
 function displayPounceAnswer(playerId, playerName, answer, alreadyEvaluated = false) {
     const answerDiv = document.createElement('div');
     answerDiv.classList.add('pounce-submission');
-    answerDiv.dataset.playerId = playerId; // Keep track of which player this div is for
+    answerDiv.dataset.playerId = playerId;
 
     const answerText = document.createElement('p');
     answerText.innerHTML = `<strong>${playerName}</strong>: ${answer}`;
@@ -201,7 +224,6 @@ function displayPounceAnswer(playerId, playerName, answer, alreadyEvaluated = fa
     correctButton.disabled = alreadyEvaluated;
     correctButton.onclick = (e) => {
         socket.emit('evaluate-pounce-answer', { playerId: e.target.dataset.playerId, isCorrect: true });
-        // Disable buttons after click
         e.target.disabled = true;
         const incorrectBtn = e.target.parentElement.querySelector('.incorrect-btn');
         if (incorrectBtn) incorrectBtn.disabled = true;
@@ -214,7 +236,6 @@ function displayPounceAnswer(playerId, playerName, answer, alreadyEvaluated = fa
     incorrectButton.disabled = alreadyEvaluated;
     incorrectButton.onclick = (e) => {
         socket.emit('evaluate-pounce-answer', { playerId: e.target.dataset.playerId, isCorrect: false });
-        // Disable buttons after click
         e.target.disabled = true;
         const correctBtn = e.target.parentElement.querySelector('.correct-btn');
         if (correctBtn) correctBtn.disabled = true;
@@ -225,8 +246,6 @@ function displayPounceAnswer(playerId, playerName, answer, alreadyEvaluated = fa
     pounceSubmissionsContainer.appendChild(answerDiv);
 }
 
-
-// Error handling for socket connection
 socket.on('connect_error', (error) => {
     console.error('Quizmaster connection error:', error);
     if (document.readyState === "loading") {

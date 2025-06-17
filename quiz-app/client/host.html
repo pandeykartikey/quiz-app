@@ -10,13 +10,28 @@
     <h1>Quizmaster Controls</h1>
     <div id="host-status-display">Initializing Quizmaster controls...</div>
 
-    <div>
-        <button id="start-question-btn">Next Question / Start Question</button>
-        <button id="pounce-start-btn">Start Pounce Phase</button>
-        <button id="bounce-start-btn">Start Bounce Phase</button>
+    <div class="quiz-control-section">
+        <button id="start-quiz-btn">Start Quiz</button>
+        <button id="end-quiz-btn" disabled>End Quiz</button>
     </div>
 
-    <div id="current-question-info">Question: Not Started - Phase: None</div>
+    <div class="question-control-section">
+        <button id="start-question-btn" disabled>Next Question</button>
+        <button id="pounce-start-btn" disabled>Start Pounce Phase</button>
+        <button id="bounce-start-btn" disabled>Start Bounce Phase</button>
+    </div>
+
+    <div id="current-question-info">Quiz Status: Not Started</div>
+
+    <div id="player-scores-container">
+        <h3>Player Scores:</h3>
+        <p>No players have joined yet.</p>
+    </div>
+
+    <div id="pounce-submissions-container">
+        <h3>Pounce Submissions:</h3>
+        <p>No pounce answers yet for this question, or pounce phase not active.</p>
+    </div>
 
     <script src="/socket.io/socket.io.js"></script>
     <script src="/host.js"></script>

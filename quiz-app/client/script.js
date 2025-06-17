@@ -61,12 +61,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   console.log('DOM fully loaded and parsed. UI elements selected.');
 
-  // Initial UI state: entry section visible, quiz interface hidden.
-  // This is already handled by HTML class 'hidden' on quiz-interface-section.
-  // if (entrySection) entrySection.classList.remove('hidden'); // Should be visible by default
-  // if (quizInterfaceSection) quizInterfaceSection.classList.add('hidden');
-
-
   if (quizmasterLoginBtn) {
     quizmasterLoginBtn.addEventListener('click', () => {
       const enteredCode = quizmasterCodeInput.value.trim();
@@ -85,7 +79,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (joinQuizBtn) {
     joinQuizBtn.addEventListener('click', () => {
-      // Placeholder for player join logic
       const playerName = playerNameInput.value.trim();
       const quizCode = quizCodeInput.value.trim();
       if (playerErrorDiv) playerErrorDiv.textContent = '';
@@ -96,16 +89,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       console.log(`Player ${playerName} attempting to join quiz with code ${quizCode || 'any'}.`);
-      // TODO: Implement actual join logic:
-      // 1. Emit 'join-quiz' to server with playerName and quizCode.
-      // 2. On success from server:
-      //    entrySection.classList.add('hidden');
-      //    quizInterfaceSection.classList.remove('hidden');
-      //    initializePlayerSocket(); // Connect socket or confirm connection
-      //    updateStatus(`Joined quiz as ${playerName}. Waiting for question...`);
-      // 3. On failure:
-      //    playerErrorDiv.textContent = "Failed to join quiz (e.g., invalid code, name taken)";
-      // alert(`Player join functionality for ${playerName} (code: ${quizCode}) is not fully implemented yet!`);
 
       // Connect socket and then emit join-quiz
       if (socket && !socket.connected) {
@@ -198,18 +181,24 @@ function updateStatus(message) {
   console.log(`Status Update: ${message}`);
 }
 
-function updateQuestionInfo(questionIndex, phase) {
+function updateQuestionInfo(state) {
   let message = "";
-  if (questionIndex !== null && typeof questionIndex !== 'undefined') {
-    if (questionIndex === -1) {
-      message = "Waiting for quiz to start...";
+  
+  if (state.quizStatus === 'not_started') {
+    message = "Quiz hasn't started yet...";
+  } else if (state.quizStatus === 'finished') {
+    message = "Quiz has finished!";
+  } else if (state.quizStatus === 'active') {
+    if (state.currentQuestionIndex === -1) {
+      message = "Quiz is active - waiting for first question...";
     } else {
-      message = `Question ${questionIndex + 1}`;
+      message = `Question ${state.currentQuestionIndex + 1}`;
+      if (state.currentPhase) {
+        message += ` - ${state.currentPhase.charAt(0).toUpperCase() + state.currentPhase.slice(1)} Phase`;
+      }
     }
   }
-  if (phase) {
-    message += `${message ? ' - ' : ''}Phase: ${phase}`;
-  }
+  
   if (questionDisplay) {
     questionDisplay.textContent = message;
   }
@@ -285,19 +274,19 @@ try {
       return;
     }
 
-    updateQuestionInfo(state.currentQuestionIndex, state.currentPhase);
+    updateQuestionInfo(state);
 
     // Update score display
     if (playerScoreDisplay && state.players && currentPlayerId && state.players[currentPlayerId]) {
       playerScoreDisplay.textContent = `Score: ${state.players[currentPlayerId].score}`;
     } else if (playerScoreDisplay) {
-      playerScoreDisplay.textContent = "Score: N/A";
+      playerScoreDisplay.textContent = "Score: 0";
     }
 
     // Pounce UI logic
     clearPounceTimers(); // Clear any existing pounce timers
 
-    if (state.currentPhase === 'pounce') {
+    if (state.quizStatus === 'active' && state.currentPhase === 'pounce') {
       updateStatus('Pounce phase! Click "Pounce" to answer.');
       if (pounceButton) {
         pounceButton.classList.remove('hidden');
@@ -328,33 +317,30 @@ try {
       if (pounceAnswerSection) pounceAnswerSection.classList.add('hidden');
       if (pounceTimerDisplay) pounceTimerDisplay.classList.add('hidden');
 
-      // General status updates based on phase
-      if (state.currentQuestionIndex === -1) {
+      // General status updates based on quiz status and phase
+      if (state.quizStatus === 'not_started') {
         updateStatus('Waiting for quiz to start...');
-      } else if (state.currentPhase === 'bounce') {
-        updateStatus('Bounce phase!');
-      } else if (state.currentPhase === 'answer') {
-         updateStatus('Answer reveal phase.');
-      } else if (state.currentPhase === 'question' || !state.currentPhase ) { // question or undefined phase after question start
-        updateStatus(`Question ${state.currentQuestionIndex + 1} active.`);
-      } else if (state.currentPhase === 'finished') {
-        updateStatus('Quiz has finished!');
+      } else if (state.quizStatus === 'finished') {
+        updateStatus('Quiz has finished! Final scores displayed above.');
+      } else if (state.quizStatus === 'active') {
+        if (state.currentQuestionIndex === -1) {
+          updateStatus('Quiz is active. Waiting for first question...');
+        } else if (state.currentPhase === 'bounce') {
+          updateStatus('Bounce phase!');
+        } else if (state.currentPhase === 'answer') {
+          updateStatus('Answer reveal phase.');
+        } else if (state.currentPhase === 'question' || !state.currentPhase) {
+          updateStatus(`Question ${state.currentQuestionIndex + 1} is active.`);
+        }
       }
     }
   }
 
-  // Remove specific handlers if quizStateUpdate covers them fully
-  // socket.on('new-question', ...) - Covered by quizStateUpdate
-  // socket.on('pounce-started', ...) - Covered by quizStateUpdate
-  // socket.on('bounce-started', ...) - Covered by quizStateUpdate
-
-  socket.on('pounce-submission-ack', ({ success }) => {
+  socket.on('pounce-submission-ack', ({ success, message }) => {
     if (success) {
       updateStatus('Pounce answer submitted successfully!');
-      // Optionally, provide more visual feedback
     } else {
-      updateStatus('Failed to submit pounce answer.');
-      // Optionally, allow retry or show error
+      updateStatus(`Failed to submit pounce answer: ${message || 'Unknown error'}`);
     }
   });
 

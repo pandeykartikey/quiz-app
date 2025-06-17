@@ -12,6 +12,8 @@ const {
   updateScore,
   recordPounceAnswer,
   clearPounceAnswers,
+  startQuiz,
+  endQuiz,
 } = require('./state');
 
 const app = express();
@@ -55,32 +57,69 @@ io.on('connection', (socket) => {
   });
 
   // Quizmaster action handlers
+  socket.on('start-quiz', () => {
+    startQuiz();
+    const updatedState = getQuizState();
+    console.log('Quizmaster started the quiz.');
+    io.emit('quizStateUpdate', updatedState);
+  });
+
+  socket.on('end-quiz', () => {
+    endQuiz();
+    const updatedState = getQuizState();
+    console.log('Quizmaster ended the quiz.');
+    io.emit('quizStateUpdate', updatedState);
+  });
+
   socket.on('start-question', () => {
+    const currentState = getQuizState();
+    if (currentState.quizStatus !== 'active') {
+      console.log('Cannot start question: Quiz is not active');
+      return;
+    }
+    
     incrementQuestion();
     clearPounceAnswers(); // Clear pounce answers for the new question
-    // Assuming questions are loaded elsewhere and incrementQuestion updates index correctly
-    // We might also want to reset phase here, e.g., setPhase('question_active');
     const updatedState = getQuizState();
-    console.log(`Quizmaster started new question: ${updatedState.currentQuestionIndex}`);
-    io.emit('quizStateUpdate', updatedState); // Send the whole state
+    console.log(`Quizmaster started question ${updatedState.currentQuestionIndex + 1}`);
+    io.emit('quizStateUpdate', updatedState);
   });
 
   socket.on('pounce-start', () => {
+    const currentState = getQuizState();
+    if (currentState.quizStatus !== 'active') {
+      console.log('Cannot start pounce: Quiz is not active');
+      return;
+    }
+    
     setPhase('pounce');
     const updatedState = getQuizState();
     console.log('Quizmaster initiated pounce phase.');
-    io.emit('quizStateUpdate', updatedState); // Send the whole state
+    io.emit('quizStateUpdate', updatedState);
   });
 
   socket.on('bounce-start', () => {
+    const currentState = getQuizState();
+    if (currentState.quizStatus !== 'active') {
+      console.log('Cannot start bounce: Quiz is not active');
+      return;
+    }
+    
     setPhase('bounce');
     const updatedState = getQuizState();
     console.log('Quizmaster initiated bounce phase.');
-    io.emit('quizStateUpdate', updatedState); // Send the whole state
+    io.emit('quizStateUpdate', updatedState);
   });
 
   // Player action handlers
   socket.on('submit-pounce-answer', ({ answer }) => {
+    const currentState = getQuizState();
+    if (currentState.quizStatus !== 'active' || currentState.currentPhase !== 'pounce') {
+      console.log(`Pounce answer submission rejected: Quiz status is ${currentState.quizStatus}, phase is ${currentState.currentPhase}`);
+      socket.emit('pounce-submission-ack', { success: false, message: 'Pounce phase not active' });
+      return;
+    }
+
     const playerId = socket.id;
     recordPounceAnswer(playerId, answer);
     const player = getQuizState().players[playerId];
